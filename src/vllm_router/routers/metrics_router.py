@@ -18,16 +18,11 @@ from fastapi import APIRouter, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from vllm_router.service_discovery import get_service_discovery
-from vllm_router.services.metrics_service.request_metrics import (
-    avg_decoding_length,
-    avg_itl,
+from vllm_router.services.metrics_service.engine_metrics import *
+from vllm_router.services.metrics_service.request_metrics import (  # avg_decoding_length,; avg_itl,; num_decoding_requests,; num_prefill_requests,; num_requests_running,; num_requests_swapped,
     avg_latency,
     current_qps,
     healthy_pods_total,
-    num_decoding_requests,
-    num_prefill_requests,
-    num_requests_running,
-    num_requests_swapped,
 )
 from vllm_router.stats.request_stats import get_request_stats_monitor
 
@@ -58,15 +53,15 @@ async def metrics():
     for server, stat in stats.items():
         current_qps.labels(server=server).set(stat.qps)
         # Assuming stat contains the following attributes:
-        avg_decoding_length.labels(server=server).set(stat.avg_decoding_length)
-        num_prefill_requests.labels(server=server).set(stat.in_prefill_requests)
-        num_decoding_requests.labels(server=server).set(stat.in_decoding_requests)
-        num_requests_running.labels(server=server).set(
-            stat.in_prefill_requests + stat.in_decoding_requests
-        )
+        # avg_decoding_length.labels(server=server).set(stat.avg_decoding_length)
+        # num_prefill_requests.labels(server=server).set(stat.in_prefill_requests)
+        # num_decoding_requests.labels(server=server).set(stat.in_decoding_requests)
+        # num_requests_running.labels(server=server).set(
+        #    stat.in_prefill_requests + stat.in_decoding_requests
+        # )
         avg_latency.labels(server=server).set(stat.avg_latency)
         avg_itl.labels(server=server).set(stat.avg_itl)
-        num_requests_swapped.labels(server=server).set(stat.num_swapped_requests)
+        # num_requests_swapped.labels(server=server).set(stat.num_swapped_requests)
     # For healthy pods, we use a hypothetical function from service discovery.
     healthy = {}
     endpoints = get_service_discovery().get_endpoint_info()

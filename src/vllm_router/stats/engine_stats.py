@@ -21,18 +21,6 @@ from prometheus_client.parser import text_string_to_metric_families
 
 @dataclass
 class EngineStats:
-    # System and Python Runtime Metrics
-    python_gc_objects_collected_total: Optional[float] = None
-    python_gc_objects_uncollectable_total: Optional[float] = None
-    python_gc_collections_total: Optional[float] = None
-    python_info: Optional[float] = None
-    process_virtual_memory_bytes: Optional[float] = None
-    process_resident_memory_bytes: Optional[float] = None
-    process_start_time_seconds: Optional[float] = None
-    process_cpu_seconds_total: Optional[float] = None
-    process_open_fds: Optional[float] = None
-    process_max_fds: Optional[float] = None
-
     # vLLM Specific Metrics
     cache_config_info: Optional[float] = None
     num_requests_running: Optional[float] = None
@@ -54,16 +42,6 @@ class EngineStats:
     def from_vllm_scrape(vllm_scrape: str) -> "EngineStats":
         # Map Prometheus metric names to dataclass attribute names
         metric_map = {
-            "python_gc_objects_collected_total": "python_gc_objects_collected_total",
-            "python_gc_objects_uncollectable_total": "python_gc_objects_uncollectable_total",
-            "python_gc_collections_total": "python_gc_collections_total",
-            "python_info": "python_info",
-            "process_virtual_memory_bytes": "process_virtual_memory_bytes",
-            "process_resident_memory_bytes": "process_resident_memory_bytes",
-            "process_start_time_seconds": "process_start_time_seconds",
-            "process_cpu_seconds_total": "process_cpu_seconds_total",
-            "process_open_fds": "process_open_fds",
-            "process_max_fds": "process_max_fds",
             "vllm:cache_config_info": "cache_config_info",
             "vllm:num_requests_running": "num_requests_running",
             "vllm:num_requests_waiting": "num_requests_waiting",
