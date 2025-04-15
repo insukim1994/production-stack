@@ -47,8 +47,8 @@ def log_stats(app: FastAPI, interval: int = 10):
             if url in engine_stats:
                 es = engine_stats[url]
                 logstr += (
-                    f" Engine Stats: Running Requests: {es.num_running_requests}, "
-                    f"Queued Requests: {es.num_queuing_requests}, "
+                    f" Engine Stats: Running Requests: {es.num_requests_running}, "
+                    f"Queued Requests: {es.num_requests_waiting}, "
                     f"GPU Cache Hit Rate: {es.gpu_prefix_cache_hit_rate:.2f}\n"
                 )
             else:

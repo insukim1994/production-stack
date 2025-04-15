@@ -1,7 +1,7 @@
 import threading
 import time
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 
 import requests
 from prometheus_client.parser import text_string_to_metric_families
@@ -13,53 +13,80 @@ from vllm_router.utils import SingletonMeta
 logger = init_logger(__name__)
 
 
+from dataclasses import dataclass
+from typing import Optional
+
+from prometheus_client.parser import text_string_to_metric_families
+
+
 @dataclass
 class EngineStats:
-    # Number of running requests
-    num_running_requests: int = 0
-    # Number of queuing requests
-    num_queuing_requests: int = 0
-    # GPU prefix cache hit rate (as used in some panels)
-    gpu_prefix_cache_hit_rate: float = 0.0
-    # GPU KV usage percentage (new field for dashboard "GPU KV Usage Percentage")
-    gpu_cache_usage_perc: float = 0.0
+    # System and Python Runtime Metrics
+    python_gc_objects_collected_total: Optional[float] = None
+    python_gc_objects_uncollectable_total: Optional[float] = None
+    python_gc_collections_total: Optional[float] = None
+    python_info: Optional[float] = None
+    process_virtual_memory_bytes: Optional[float] = None
+    process_resident_memory_bytes: Optional[float] = None
+    process_start_time_seconds: Optional[float] = None
+    process_cpu_seconds_total: Optional[float] = None
+    process_open_fds: Optional[float] = None
+    process_max_fds: Optional[float] = None
+
+    # vLLM Specific Metrics
+    cache_config_info: Optional[float] = None
+    num_requests_running: Optional[float] = None
+    num_requests_waiting: Optional[float] = None
+    num_requests_swapped: Optional[float] = None
+    gpu_cache_usage_perc: Optional[float] = None
+    cpu_cache_usage_perc: Optional[float] = None
+    num_preemptions_total: Optional[float] = None
+    prompt_tokens_total: Optional[float] = None
+    generation_tokens_total: Optional[float] = None
+    request_success_total: Optional[float] = None
+    avg_prompt_throughput_toks_per_s: Optional[float] = None
+    avg_generation_throughput_toks_per_s: Optional[float] = None
+
+    # Metrics mighth not exist
+    gpu_prefix_cache_hit_rate = 0.0
 
     @staticmethod
-    def from_vllm_scrape(vllm_scrape: str):
-        """
-        Parse the vllm scrape string and return a EngineStats object
+    def from_vllm_scrape(vllm_scrape: str) -> "EngineStats":
+        # Map Prometheus metric names to dataclass attribute names
+        metric_map = {
+            "python_gc_objects_collected_total": "python_gc_objects_collected_total",
+            "python_gc_objects_uncollectable_total": "python_gc_objects_uncollectable_total",
+            "python_gc_collections_total": "python_gc_collections_total",
+            "python_info": "python_info",
+            "process_virtual_memory_bytes": "process_virtual_memory_bytes",
+            "process_resident_memory_bytes": "process_resident_memory_bytes",
+            "process_start_time_seconds": "process_start_time_seconds",
+            "process_cpu_seconds_total": "process_cpu_seconds_total",
+            "process_open_fds": "process_open_fds",
+            "process_max_fds": "process_max_fds",
+            "vllm:cache_config_info": "cache_config_info",
+            "vllm:num_requests_running": "num_requests_running",
+            "vllm:num_requests_waiting": "num_requests_waiting",
+            "vllm:num_requests_swapped": "num_requests_swapped",
+            "vllm:gpu_cache_usage_perc": "gpu_cache_usage_perc",
+            "vllm:cpu_cache_usage_perc": "cpu_cache_usage_perc",
+            "vllm:num_preemptions_total": "num_preemptions_total",
+            "vllm:prompt_tokens_total": "prompt_tokens_total",
+            "vllm:generation_tokens_total": "generation_tokens_total",
+            "vllm:request_success_total": "request_success_total",
+            "vllm:avg_prompt_throughput_toks_per_s": "avg_prompt_throughput_toks_per_s",
+            "vllm:avg_generation_throughput_toks_per_s": "avg_generation_throughput_toks_per_s",
+        }
 
-        Args:
-            vllm_scrape (str): The vllm scrape string
-
-        Returns:
-            EngineStats: The EngineStats object
-
-        Note:
-            Assume vllm only runs a single model
-        """
-        num_running_reqs = 0
-        num_queuing_reqs = 0
-        gpu_prefix_cache_hit_rate = 0.0
-        gpu_cache_usage_perc = 0.0
-
+        stats = EngineStats()
         for family in text_string_to_metric_families(vllm_scrape):
+            if family.type not in ("counter", "gauge"):
+                continue  # Ignore histograms and others
             for sample in family.samples:
-                if sample.name == "vllm:num_requests_running":
-                    num_running_reqs = sample.value
-                elif sample.name == "vllm:num_requests_waiting":
-                    num_queuing_reqs = sample.value
-                elif sample.name == "vllm:gpu_prefix_cache_hit_rate":
-                    gpu_prefix_cache_hit_rate = sample.value
-                elif sample.name == "vllm:gpu_cache_usage_perc":
-                    gpu_cache_usage_perc = sample.value
-
-        return EngineStats(
-            num_running_requests=num_running_reqs,
-            num_queuing_requests=num_queuing_reqs,
-            gpu_prefix_cache_hit_rate=gpu_prefix_cache_hit_rate,
-            gpu_cache_usage_perc=gpu_cache_usage_perc,
-        )
+                name, value = sample.name, sample.value
+                if name in metric_map:
+                    setattr(stats, metric_map[name], value)
+        return stats
 
 
 class EngineStatsScraper(metaclass=SingletonMeta):
