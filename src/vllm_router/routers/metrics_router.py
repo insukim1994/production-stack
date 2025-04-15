@@ -19,11 +19,19 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from vllm_router.service_discovery import get_service_discovery
 from vllm_router.services.metrics_service.engine_metrics import *
-from vllm_router.services.metrics_service.request_metrics import (  # avg_decoding_length,; avg_itl,; num_decoding_requests,; num_prefill_requests,; num_requests_running,; num_requests_swapped,
+from vllm_router.services.metrics_service.request_metrics import (
+    avg_decoding_length,
+    avg_itl,
     avg_latency,
     current_qps,
     healthy_pods_total,
+    num_decoding_requests,
+    num_prefill_requests,
+    num_requests_running,
+    num_requests_swapped,
+    num_requests_waiting,
 )
+from vllm_router.stats.engine_stats import get_engine_stats_scraper
 from vllm_router.stats.request_stats import get_request_stats_monitor
 
 metrics_router = APIRouter()
@@ -49,19 +57,39 @@ async def metrics():
         the appropriate content type.
     """
 
-    stats = get_request_stats_monitor().get_request_stats(time.time())
-    for server, stat in stats.items():
+    request_stats = get_request_stats_monitor().get_request_stats(time.time())
+    for server, stat in request_stats.items():
         current_qps.labels(server=server).set(stat.qps)
         # Assuming stat contains the following attributes:
-        # avg_decoding_length.labels(server=server).set(stat.avg_decoding_length)
-        # num_prefill_requests.labels(server=server).set(stat.in_prefill_requests)
-        # num_decoding_requests.labels(server=server).set(stat.in_decoding_requests)
-        # num_requests_running.labels(server=server).set(
-        #    stat.in_prefill_requests + stat.in_decoding_requests
-        # )
+        avg_decoding_length.labels(server=server).set(stat.avg_decoding_length)
+        num_prefill_requests.labels(server=server).set(stat.in_prefill_requests)
+        num_decoding_requests.labels(server=server).set(stat.in_decoding_requests)
+        num_requests_running.labels(server=server).set(
+            stat.in_prefill_requests + stat.in_decoding_requests
+        )
         avg_latency.labels(server=server).set(stat.avg_latency)
         avg_itl.labels(server=server).set(stat.avg_itl)
-        # num_requests_swapped.labels(server=server).set(stat.num_swapped_requests)
+        num_requests_swapped.labels(server=server).set(stat.num_swapped_requests)
+
+    engine_stats = get_engine_stats_scraper().get_engine_stats()
+    for server, stat in engine_stats.items():
+        # Assuming engine stat contains the following attributes:
+        # Gauges
+        num_requests_waiting.labels(server=server).set(stat.num_requests_waiting)
+        gpu_cache_usage_perc.labels(server=server).set(stat.gpu_cache_usage_perc)
+        cpu_cache_usage_perc.labels(server=server).set(stat.cpu_cache_usage_perc)
+        avg_prompt_throughput_toks_per_s.labels(server=server).set(
+            stat.avg_prompt_throughput_toks_per_s
+        )
+        avg_generation_throughput_toks_per_s.labels(server=server).set(
+            stat.avg_generation_throughput_toks_per_s
+        )
+
+        # Counters
+        num_preemptions_total.labels(server=server).inc(stat.num_preemptions_total)
+        prompt_tokens_total.labels(server=server).inc(stat.prompt_tokens_total)
+        generation_tokens_total.labels(server=server).inc(stat.generation_tokens_total)
+        request_success_total.labels(server=server).inc(stat.request_success_total)
     # For healthy pods, we use a hypothetical function from service discovery.
     healthy = {}
     endpoints = get_service_discovery().get_endpoint_info()

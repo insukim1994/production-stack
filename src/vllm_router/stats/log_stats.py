@@ -4,11 +4,16 @@ from fastapi import FastAPI
 
 from vllm_router.log import init_logger
 from vllm_router.service_discovery import get_service_discovery
-from vllm_router.services.metrics_service.request_metrics import *
+from vllm_router.services.metrics_service.engine_metrics import *
 from vllm_router.services.metrics_service.request_metrics import (
+    avg_decoding_length,
     avg_itl,
     avg_latency,
     current_qps,
+    num_decoding_requests,
+    num_prefill_requests,
+    num_requests_running,
+    num_requests_swapped,
 )
 
 logger = init_logger(__name__)
@@ -73,6 +78,28 @@ def log_stats(app: FastAPI, interval: int = 10):
                 num_requests_swapped.labels(server=url).set(rs.num_swapped_requests)
             else:
                 logstr += " Request Stats: No stats available\n"
+            if url in engine_stats:
+                es = engine_stats[url]
+
+                # Gauges
+                gpu_cache_usage_perc.labels(server=url).set(es.gpu_cache_usage_perc)
+                cpu_cache_usage_perc.labels(server=url).set(es.cpu_cache_usage_perc)
+                avg_prompt_throughput_toks_per_s.labels(server=url).set(
+                    es.avg_prompt_throughput_toks_per_s
+                )
+                avg_generation_throughput_toks_per_s.labels(server=url).set(
+                    es.avg_generation_throughput_toks_per_s
+                )
+
+                # Counters
+                num_preemptions_total.labels(server=url).inc(es.num_preemptions_total)
+                prompt_tokens_total.labels(server=url).inc(es.prompt_tokens_total)
+                generation_tokens_total.labels(server=url).inc(
+                    es.generation_tokens_total
+                )
+                request_success_total.labels(server=url).inc(es.request_success_total)
+            else:
+                logstr += " Engine Stats: No stats available\n"
             logstr += "-" * 50 + "\n"
         logstr += "=" * 50 + "\n"
         logger.info(logstr)

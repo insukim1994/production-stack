@@ -22,7 +22,6 @@ from prometheus_client.parser import text_string_to_metric_families
 @dataclass
 class EngineStats:
     # vLLM Specific Metrics
-    cache_config_info: Optional[float] = None
     num_requests_running: Optional[float] = None
     num_requests_waiting: Optional[float] = None
     num_requests_swapped: Optional[float] = None
@@ -42,7 +41,6 @@ class EngineStats:
     def from_vllm_scrape(vllm_scrape: str) -> "EngineStats":
         # Map Prometheus metric names to dataclass attribute names
         metric_map = {
-            "vllm:cache_config_info": "cache_config_info",
             "vllm:num_requests_running": "num_requests_running",
             "vllm:num_requests_waiting": "num_requests_waiting",
             "vllm:num_requests_swapped": "num_requests_swapped",
@@ -64,6 +62,7 @@ class EngineStats:
                 name, value = sample.name, sample.value
                 if name in metric_map:
                     setattr(stats, metric_map[name], value)
+
         return stats
 
 
