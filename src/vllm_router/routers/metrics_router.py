@@ -18,7 +18,7 @@ from fastapi import APIRouter, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from vllm_router.service_discovery import get_service_discovery
-from vllm_router.services.metrics_service import (
+from vllm_router.services.metrics_service.request_metrics import (
     avg_decoding_length,
     avg_itl,
     avg_latency,
