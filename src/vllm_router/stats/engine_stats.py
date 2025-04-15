@@ -1,7 +1,7 @@
 import threading
 import time
-from dataclasses import dataclass
-from typing import Dict
+from dataclasses import dataclass, field
+from typing import Any, Dict
 
 import requests
 from prometheus_client.parser import text_string_to_metric_families
@@ -15,14 +15,7 @@ logger = init_logger(__name__)
 
 @dataclass
 class EngineStats:
-    # Number of running requests
-    num_running_requests: int = 0
-    # Number of queuing requests
-    num_queuing_requests: int = 0
-    # GPU prefix cache hit rate (as used in some panels)
-    gpu_prefix_cache_hit_rate: float = 0.0
-    # GPU KV usage percentage (new field for dashboard "GPU KV Usage Percentage")
-    gpu_cache_usage_perc: float = 0.0
+    metrics: Dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
     def from_vllm_scrape(vllm_scrape: str):
@@ -38,28 +31,14 @@ class EngineStats:
         Note:
             Assume vllm only runs a single model
         """
-        num_running_reqs = 0
-        num_queuing_reqs = 0
-        gpu_prefix_cache_hit_rate = 0.0
-        gpu_cache_usage_perc = 0.0
+
+        metrics = {}
 
         for family in text_string_to_metric_families(vllm_scrape):
             for sample in family.samples:
-                if sample.name == "vllm:num_requests_running":
-                    num_running_reqs = sample.value
-                elif sample.name == "vllm:num_requests_waiting":
-                    num_queuing_reqs = sample.value
-                elif sample.name == "vllm:gpu_prefix_cache_hit_rate":
-                    gpu_prefix_cache_hit_rate = sample.value
-                elif sample.name == "vllm:gpu_cache_usage_perc":
-                    gpu_cache_usage_perc = sample.value
+                metrics[sample.name] = sample.value
 
-        return EngineStats(
-            num_running_requests=num_running_reqs,
-            num_queuing_requests=num_queuing_reqs,
-            gpu_prefix_cache_hit_rate=gpu_prefix_cache_hit_rate,
-            gpu_cache_usage_perc=gpu_cache_usage_perc,
-        )
+        return EngineStats(metrics=metrics)
 
 
 class EngineStatsScraper(metaclass=SingletonMeta):
