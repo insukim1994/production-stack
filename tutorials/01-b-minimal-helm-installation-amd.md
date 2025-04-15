@@ -37,7 +37,7 @@ This tutorial guides you through a minimal setup of the vLLM Production Stack us
 
 #### 1.1: Use Predefined Configuration
 
-The vLLM Production Stack repository provides a predefined configuration file, `values-01-minimal-amd-example.yaml`, located at [`tutorials/assets/values-01-minimal-amd-example.yaml`](assets/values-01-minimal-amd-example.yaml). This file contains the following content:
+The vLLM Production Stack repository provides a predefined configuration file, `values-01-b-minimal-amd-example.yaml`, located at [`tutorials/assets/values-01-minimal-amd-example.yaml`](assets/values-01-minimal-amd-example.yaml). This file contains the following content:
 
 ```yaml
 servingEngineSpec:
@@ -99,14 +99,14 @@ Deploy the Helm chart using the predefined configuration file:
 
 ```bash
 helm repo add vllm https://vllm-project.github.io/production-stack
-helm install vllm vllm/vllm-stack -f tutorials/assets/values-01-minimal-amd-example.yaml
+helm install vllm vllm/vllm-stack -f tutorials/assets/values-01-b-minimal-amd-example.yaml
 ```
 
 Explanation of the command:
 
 - `vllm` in the first command: The Helm repository.
 - `vllm` in the second command: The name of the Helm release.
-- `-f tutorials/assets/values-01-minimal-amd-example.yaml`: Specifies the predefined configuration file. You can check out the [default config values](../helm/values.yaml) for the chart [`vllm-stack`](../helm/Chart.yaml).
+- `-f tutorials/assets/values-01-b-minimal-amd-example.yaml`: Specifies the predefined configuration file. You can check out the [default config values](../helm/values.yaml) for the chart [`vllm-stack`](../helm/Chart.yaml).
 
 ### 2. Validate Installation
 
